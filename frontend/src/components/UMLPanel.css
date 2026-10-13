@@ -1,0 +1,128 @@
+.uml-button {
+  position: fixed;
+  bottom: 80px; /* above chatbot */
+  right: 20px;
+  background: #7d76fb;;
+  color: white;
+  font-size: 20px;
+  padding: 12px;
+  border-radius: 50%;
+  cursor: pointer;
+  z-index: 999;
+}
+
+/* ===== UML PANEL ===== */
+.uml-container {
+  position: fixed;
+  top: 70px;
+  right: 20px;
+  bottom: 20px;
+  width: 400px; /* slightly bigger */
+  background: #020617;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  z-index: 999;
+}
+
+/* ===== HEADER ===== */
+.uml-header {
+  background: #4f46e5;
+  padding: 10px;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ===== BODY ===== */
+.uml-body {
+  flex: 1;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+/* ===== TEXTAREA ===== */
+.uml-body textarea {
+  width: 100%;
+  height: 120px;
+  background: #1e293b;
+  color: white;
+  border: none;
+  padding: 8px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+}
+
+/* ===== OPTIONS ===== */
+.uml-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: white;
+}
+
+/* ===== BUTTON ===== */
+.generate-btn {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  background: #4f46e5;;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+/* ===== OUTPUT LIST ===== */
+.uml-images {
+  margin-top: 10px;
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+/* ===== CARD ===== */
+.uml-image-card {
+  background: #111827;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+/* ===== MERMAID FIX (IMPORTANT 🔥) */
+.mermaid {
+  background: #ffffff;
+  padding: 10px;
+  border-radius: 8px;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  max-width: 100%;
+}
+
+/* 🔥 VERY IMPORTANT: prevent overflow */
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ===== ACTION BUTTONS ===== */
+.uml-actions {
+  display: flex;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.uml-actions button {
+  flex: 1;
+  padding: 6px;
+  background: #4f46e5;
+  border: none;
+  color: white;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.hide-uml .uml-button {
+  display: none !important;
+}

@@ -1,0 +1,18 @@
+.v2c-box {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #020617;
+  padding: 15px;
+  border-radius: 10px;
+  z-index: 999;
+  box-shadow: 0 0 10px black;
+}
+
+.v2c-box button {
+  background: #0284c7;
+  color: white;
+  border: none;
+  padding: 10px;
+  cursor: pointer;
+}

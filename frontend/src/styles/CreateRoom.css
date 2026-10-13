@@ -1,0 +1,81 @@
+.room-container {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #020617, #0f172a);
+}
+
+.room-card {
+  width: 350px;
+  padding: 25px;
+  border-radius: 15px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.6);
+  text-align: center;
+  transition: 0.3s;
+}
+
+.room-card:hover {
+  transform: translateY(-5px);
+}
+
+.room-logo {
+  width: 120px;
+  margin-bottom: 10px;
+}
+
+.room-heading {
+  color: white;
+  margin-bottom: 20px;
+}
+
+.room-input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #020617;
+  color: white;
+  outline: none;
+  transition: 0.2s;
+}
+
+.room-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 5px #2563eb;
+}
+
+.room-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(90deg, #2563eb, #1d4ed8);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.room-btn:hover {
+  transform: scale(1.03);
+  background: linear-gradient(90deg, #1d4ed8, #2563eb);
+}
+
+.room-text {
+  margin-top: 15px;
+  color: #94a3b8;
+}
+
+.room-link {
+  color: #22c55e;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.room-link:hover {
+  text-decoration: underline;
+}
