@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 export default function Login() {
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState("Neha Kale");
   const [password, setPassword] = useState("");
   const [move, setMove] = useState(false);
 
@@ -114,6 +114,8 @@ export default function Login() {
         {/* USERNAME INPUT GLASS */}
         <input
           placeholder="Username"
+          value={username}
+          autoComplete="username"
           onChange={(e) => setUsername(e.target.value)}
           style={{
             width: "100%",
@@ -136,6 +138,8 @@ export default function Login() {
         <input
           type="password"
           placeholder="Password"
+          value={password}
+          autoComplete="current-password"
           onChange={(e) => setPassword(e.target.value)}
           style={{
             width: "100%",
@@ -215,6 +219,20 @@ export default function Login() {
           }}
         >
           Enter credentials to unlock 🚪
+        </p>
+
+        {/* CREDITS */}
+        <p
+          style={{
+            marginTop: "16px",
+            fontSize: "12px",
+            letterSpacing: "1px",
+            textTransform: "uppercase",
+            color: "rgba(255, 255, 255, 0.55)",
+            fontWeight: "500",
+          }}
+        >
+          Developed by NEHA KALE
         </p>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { v4 as uuid } from "uuid";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
@@ -6,10 +6,8 @@ import { useNavigate } from "react-router-dom";
 
 function CreateRoom() {
 
-  
-
       const [roomId, setRoomId] = useState("");
-      const [username, setUsername] = useState("");
+      const [username, setUsername] = useState("Neha Kale");
 
       const navigate = useNavigate();
 
@@ -88,6 +86,17 @@ function CreateRoom() {
                     {" "}
                     New Room
                   </span>
+                </p>
+                <p
+                  className="mt-3 text-secondary"
+                  style={{
+                    fontSize: "12px",
+                    letterSpacing: "1px",
+                    textTransform: "uppercase",
+                    fontWeight: 500,
+                  }}
+                >
+                  Developed by NEHA KALE
                 </p>
               </div>
 

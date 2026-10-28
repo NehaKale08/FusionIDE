@@ -166,6 +166,19 @@ export default function Home() {
           >
             Manage your projects easily ✨
           </p>
+          <p
+            style={{
+              textAlign: "center",
+              marginTop: "10px",
+              fontSize: "12px",
+              letterSpacing: "1px",
+              textTransform: "uppercase",
+              color: "rgba(255, 255, 255, 0.45)",
+              fontWeight: "500",
+            }}
+          >
+            Developed by NEHA KALE
+          </p>
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
   import MonacoEditor from "@monaco-editor/react";
   import axios from "axios";
   import { useNavigate } from "react-router-dom";
-  import Draggable from "react-draggable";
+
   import { io } from "socket.io-client";
   import "react-resizable/css/styles.css";
   //import { Toaster } from 'react-hot-toast';
@@ -81,7 +81,7 @@ import UMLPanel from "../components/UMLPanel";
     const [code, setCode] = useState("");
     const [currentFile, setCurrentFile] = useState(null);
 
-    const [explorerWidth, setExplorerWidth] = useState(250);
+    const [explorerWidth] = useState(250);
 
     const [openTabs, setOpenTabs] = useState([]);
     const [activeTab, setActiveTab] = useState(null);
@@ -126,6 +126,7 @@ import UMLPanel from "../components/UMLPanel";
   };
 
   /*======================Generating Code======================= */
+  // eslint-disable-next-line no-unused-vars
   const typeCode = (code) => {
     let i = 0;
 
@@ -164,6 +165,7 @@ import UMLPanel from "../components/UMLPanel";
 
     useEffect(() => {
       refreshTree();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     /* ======================= RUN CODE (SOCKET) ======================= */
@@ -323,6 +325,18 @@ import UMLPanel from "../components/UMLPanel";
 
           {/* RIGHT SIDE */}
           <div className="top-right">
+            <span
+              style={{
+                fontSize: "12px",
+                color: "#94a3b8",
+                letterSpacing: "0.5px",
+                textTransform: "uppercase",
+                fontWeight: 500,
+                marginRight: "4px",
+              }}
+            >
+              Developed by NEHA KALE
+            </span>
 
             <select
               value={language}
