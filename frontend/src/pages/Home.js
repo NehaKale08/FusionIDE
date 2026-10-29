@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
 export default function Home() {
   const [name, setName] = useState("");
   const [path, setPath] = useState("");
@@ -15,16 +17,24 @@ export default function Home() {
       return;
     }
 
-    const res = await axios.post(
-      "http://localhost:5000/api/project/create",
-      {
-        projectName: name.trim(),
-        projectPath: path.trim(),
-      }
-    );
+    try {
+      const res = await axios.post(
+        `${BACKEND_URL}/api/project/create`,
+        {
+          projectName: name.trim(),
+          projectPath: path.trim(),
+        }
+      );
 
-    localStorage.setItem("projectPath", res.data.path);
-    nav("/editor");
+      localStorage.setItem("projectPath", res.data.path);
+      nav("/editor");
+    } catch (error) {
+      console.error("Create project error:", error);
+      alert(
+        error.response?.data?.message ||
+          "Unable to create project. Please check your backend connection."
+      );
+    }
   };
 
   const openProject = () => {
@@ -45,11 +55,11 @@ export default function Home() {
         justifyContent: "center",
         alignItems: "center",
         padding: "30px",
+        boxSizing: "border-box",
         fontFamily: "Consolas, monospace",
-
-        /* GLASS BACKGROUND */
         background: "linear-gradient(135deg, #0f172a, #1e293b)",
         overflow: "hidden",
+        position: "relative",
       }}
     >
       {/* BACKGROUND BLUR BLOBS */}
@@ -65,6 +75,7 @@ export default function Home() {
           left: "10%",
         }}
       />
+
       <div
         style={{
           position: "absolute",
@@ -81,15 +92,15 @@ export default function Home() {
       {/* GLASS CARD */}
       <div
         style={{
-          width: "560px",
+          width: "100%",
+          maxWidth: "560px",
           borderRadius: "20px",
           zIndex: 10,
-
+          boxSizing: "border-box",
           background: "rgba(255, 255, 255, 0.08)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           border: "1px solid rgba(255,255,255,0.15)",
-
           boxShadow: "0px 10px 35px rgba(0,0,0,0.6)",
           overflow: "hidden",
           color: "#d4d4d4",
@@ -103,7 +114,6 @@ export default function Home() {
             fontWeight: "bold",
             fontSize: "16px",
             color: "#ffffff",
-
             background: "rgba(255,255,255,0.05)",
             borderBottom: "1px solid rgba(255,255,255,0.15)",
           }}
@@ -121,12 +131,14 @@ export default function Home() {
 
             <input
               placeholder="Project Name"
+              value={name}
               onChange={(e) => setName(e.target.value)}
               style={glassInput}
             />
 
             <input
               placeholder="Project Path (C:\\projects)"
+              value={path}
               onChange={(e) => setPath(e.target.value)}
               style={glassInput}
             />
@@ -146,6 +158,7 @@ export default function Home() {
 
             <input
               placeholder="Existing Folder Path"
+              value={openPath}
               onChange={(e) => setOpenPath(e.target.value)}
               style={glassInput}
             />
@@ -166,6 +179,7 @@ export default function Home() {
           >
             Manage your projects easily ✨
           </p>
+
           <p
             style={{
               textAlign: "center",
@@ -193,7 +207,7 @@ const glassInput = {
   borderRadius: "8px",
   outline: "none",
   fontSize: "14px",
-
+  boxSizing: "border-box",
   background: "rgba(255,255,255,0.08)",
   backdropFilter: "blur(15px)",
   border: "1px solid rgba(255,255,255,0.15)",
@@ -208,7 +222,6 @@ const glassButtonBlue = {
   cursor: "pointer",
   fontSize: "15px",
   fontWeight: "bold",
-
   background: "rgba(14, 99, 156, 0.35)",
   backdropFilter: "blur(15px)",
   color: "white",

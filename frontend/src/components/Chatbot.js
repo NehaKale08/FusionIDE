@@ -1,38 +1,174 @@
 
-import React, { useState, useEffect } from "react";
-import "./chatbot.css";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+import React, { useState, useRef, useEffect } from "react";
+
+const BACKEND_URL =
+  process.env.REACT_APP_BACKEND_URL || "http://localhost:5000";
+
+const styles = {
+  container: {
+    position: "fixed",
+    right: "14px",
+    bottom: "14px",
+    width: "380px",
+    maxWidth: "calc(100vw - 28px)",
+    height: "520px",
+    maxHeight: "80vh",
+    background: "#020617",
+    color: "#e5e7eb",
+    border: "1px solid #334155",
+    borderRadius: "12px",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+    zIndex: 9999,
+    boxShadow: "0 8px 30px rgba(0,0,0,0.4)",
+    fontFamily: "Arial, sans-serif",
+  },
+  header: {
+    background: "#4f46e5",
+    padding: "15px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    fontSize: "18px",
+    fontWeight: "bold",
+  },
+  closeButton: {
+    background: "transparent",
+    color: "white",
+    border: "none",
+    cursor: "pointer",
+    fontSize: "22px",
+    fontWeight: "bold",
+  },
+  messages: {
+    flex: 1,
+    overflowY: "auto",
+    padding: "14px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "10px",
+  },
+  message: {
+    padding: "12px",
+    borderRadius: "9px",
+    fontSize: "15px",
+    lineHeight: 1.55,
+    overflowWrap: "anywhere",
+    whiteSpace: "pre-wrap",
+  },
+  inputArea: {
+    display: "flex",
+    borderTop: "1px solid #334155",
+    background: "#0f172a",
+  },
+  input: {
+    flex: 1,
+    minWidth: 0,
+    padding: "14px 12px",
+    border: "none",
+    outline: "none",
+    fontSize: "16px",
+    background: "#fff",
+    color: "#111827",
+  },
+  sendButton: {
+    padding: "12px",
+    border: "none",
+    background: "#4f46e5",
+    color: "#fff",
+    cursor: "pointer",
+    fontSize: "15px",
+  },
+  codeBlock: {
+    background: "#020617",
+    color: "#d1fae5",
+    padding: "12px",
+    borderRadius: "6px",
+    overflowX: "auto",
+    fontSize: "13px",
+    whiteSpace: "pre",
+  },
+  copyButton: {
+    padding: "5px 9px",
+    background: "#334155",
+    color: "#fff",
+    border: "none",
+    borderRadius: "5px",
+    cursor: "pointer",
+    marginBottom: "6px",
+  },
+};
+
+function MessageContent({ content }) {
+  const parts = String(content || "").split(/(```[\s\S]*?```)/g);
+
+  return (
+    <div>
+      {parts.map((part, index) => {
+        if (part.startsWith("```") && part.endsWith("```")) {
+          const lines = part.split("\n");
+          const code = lines.slice(1, -1).join("\n");
+
+          return (
+            <div key={index} style={{ marginTop: 8, marginBottom: 8 }}>
+              <button
+                style={styles.copyButton}
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(code);
+                  } catch (error) {
+                    console.error("Unable to copy code:", error);
+                  }
+                }}
+              >
+                Copy code
+              </button>
+              <pre style={styles.codeBlock}>
+                <code>{code}</code>
+              </pre>
+            </div>
+          );
+        }
+
+        return (
+          <span key={index} style={{ whiteSpace: "pre-wrap" }}>
+            {part}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function Chatbot() {
-  const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { text: "Hello 👋 How can I help you?", type: "bot" }
-  ]);
+  const [isOpen, setIsOpen] = useState(true);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [hideUML, setHideUML] = useState(false);
+  const [messages, setMessages] = useState([
+    {
+      role: "assistant",
+      content: "Hello 👋 How can I help you?",
+    },
+  ]);
+
+  const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
-    if (hideUML) {
-      document.body.classList.add("hide-uml");
-    } else {
-      document.body.classList.remove("hide-uml");
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
-    return () => {
-      document.body.classList.remove("hide-uml");
-    };
-  }, [hideUML]);
+  const sendMessage = async (event) => {
+    event?.preventDefault();
 
-  const sendMessage = async () => {
-    const userMsg = input.trim();
+    const userMessage = input.trim();
 
-    if (!userMsg || loading) return;
+    if (!userMessage || loading) return;
 
     const updatedMessages = [
       ...messages,
-      { text: userMsg, type: "user" }
+      { role: "user", content: userMessage },
     ];
 
     setMessages(updatedMessages);
@@ -40,145 +176,165 @@ export default function Chatbot() {
     setLoading(true);
 
     try {
-      const history = messages
-        .filter((message) => message.type === "user" || message.type === "bot")
-        .slice(-10)
-        .map((message) => ({
-          role: message.type === "user" ? "user" : "assistant",
-          content: message.text
-        }));
+      const response = await fetch(
+        `${BACKEND_URL}/api/ai/chat`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: userMessage,
+            history: messages.map((message) => ({
+              role: message.role,
+              content: message.content,
+            })),
+          }),
+        }
+      );
 
-      const response = await fetch("http://localhost:5000/api/ai/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          message: userMsg,
-          history
-        })
-      });
-
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(data?.error || "AI request failed.");
+        throw new Error(
+          data.error ||
+            data.message ||
+            `Server error: ${response.status}`
+        );
       }
 
-      const reply = data?.reply || "No response received.";
+      const reply = data.reply || data.response || data.message;
 
-      setMessages((prev) => [
-        ...prev,
-        { text: reply, type: "bot" }
+      if (!reply || typeof reply !== "string") {
+        throw new Error(
+          "The backend did not return a valid reply."
+        );
+      }
+
+      setMessages((previous) => [
+        ...previous,
+        { role: "assistant", content: reply },
       ]);
     } catch (error) {
-      setMessages((prev) => [
-        ...prev,
+      console.error("Chatbot request failed:", error);
+
+      let errorMessage =
+        error.message || "Unable to get a response from the assistant.";
+
+      if (
+        error instanceof TypeError ||
+        errorMessage.toLowerCase().includes("fetch")
+      ) {
+        errorMessage =
+          "Cannot connect to the backend. Make sure the backend is running on port 5000 and the backend URL is correct.";
+      }
+
+      setMessages((previous) => [
+        ...previous,
         {
-          text: `❌ ${error.message || "Error connecting to AI."}`,
-          type: "bot"
-        }
+          role: "assistant",
+          content: `❌ ${errorMessage}`,
+        },
       ]);
     } finally {
       setLoading(false);
+      inputRef.current?.focus();
     }
   };
 
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        style={{
+          position: "fixed",
+          right: 20,
+          bottom: 20,
+          padding: "14px 18px",
+          border: "none",
+          borderRadius: "50px",
+          background: "#4f46e5",
+          color: "#fff",
+          cursor: "pointer",
+          zIndex: 9999,
+          fontSize: 16,
+        }}
+      >
+        🤖 Assistant
+      </button>
+    );
+  }
+
   return (
-    <>
-      {!open && (
-        <div
-          className="chat-button"
-          onClick={() => {
-            setOpen(true);
-            setHideUML(true);
-          }}
+    <div style={styles.container}>
+      <div style={styles.header}>
+        <span>🤖 Assistant</span>
+        <button
+          type="button"
+          style={styles.closeButton}
+          onClick={() => setIsOpen(false)}
+          aria-label="Close assistant"
         >
-          💬
-        </div>
-      )}
+          ×
+        </button>
+      </div>
 
-      {open && (
-        <div className="chat-container">
-          <div className="chat-header">
-            <span>🤖 Assistant</span>
-            <button
-              className="close-btn"
-              onClick={() => {
-                setOpen(false);
-                setHideUML(false);
-              }}
-            >
-              &times;
-            </button>
+      <div style={styles.messages}>
+        {messages.map((message, index) => (
+          <div
+            key={index}
+            style={{
+              ...styles.message,
+              alignSelf:
+                message.role === "user" ? "flex-end" : "stretch",
+              maxWidth: "100%",
+              background:
+                message.role === "user" ? "#4f46e5" : "#1e293b",
+              color: "#e5e7eb",
+            }}
+          >
+            <MessageContent content={message.content} />
           </div>
+        ))}
 
-          <div className="chat-body">
-            {messages.map((message, index) => {
-              const parts = message.text.split("```");
-
-              return (
-                <div
-                  key={index}
-                  className={`message ${message.type}`}
-                >
-                  {parts.map((part, partIndex) => {
-                    if (partIndex % 2 === 1) {
-                      const lines = part.split("\n");
-                      const firstLine = lines[0].trim();
-                      const hasLanguage = /^[a-zA-Z0-9_+#.-]+$/.test(firstLine);
-                      const language = hasLanguage ? firstLine : "text";
-                      const code = hasLanguage
-                        ? lines.slice(1).join("\n")
-                        : part;
-
-                      return (
-                        <SyntaxHighlighter
-                          key={partIndex}
-                          language={language}
-                          style={oneDark}
-                          customStyle={{
-                            borderRadius: "8px",
-                            padding: "12px",
-                            fontSize: "13px"
-                          }}
-                        >
-                          {code}
-                        </SyntaxHighlighter>
-                      );
-                    }
-
-                    return (
-                      <p key={partIndex} className="text-block">
-                        {part}
-                      </p>
-                    );
-                  })}
-                </div>
-              );
-            })}
-
-            {loading && (
-              <div className="message bot">Thinking...</div>
-            )}
+        {loading && (
+          <div
+            style={{
+              ...styles.message,
+              background: "#1e293b",
+              alignSelf: "flex-start",
+            }}
+          >
+            Assistant is thinking...
           </div>
+        )}
 
-          <div className="chat-footer">
-            <input
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              placeholder="Type..."
-              disabled={loading}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") sendMessage();
-              }}
-            />
-            <button onClick={sendMessage} disabled={loading || !input.trim()}>
-              {loading ? "Sending..." : "Send"}
-            </button>
-          </div>
-        </div>
-      )}
-    </>
+        <div ref={messagesEndRef} />
+      </div>
+
+      <form onSubmit={sendMessage} style={styles.inputArea}>
+        <input
+          ref={inputRef}
+          type="text"
+          value={input}
+          onChange={(event) => setInput(event.target.value)}
+          placeholder="Type..."
+          style={styles.input}
+          disabled={loading}
+          autoComplete="off"
+        />
+
+        <button
+          type="submit"
+          style={{
+            ...styles.sendButton,
+            opacity: loading || !input.trim() ? 0.6 : 1,
+          }}
+          disabled={loading || !input.trim()}
+        >
+          {loading ? "..." : "Send"}
+        </button>
+      </form>
+    </div>
   );
 }

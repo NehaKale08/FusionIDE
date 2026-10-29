@@ -6,82 +6,119 @@ import React, {
   useCallback,
 } from "react";
 
+// Backend URL: local development fallback
+const BACKEND_URL = (
+  process.env.REACT_APP_BACKEND_URL || "http://localhost:5000"
+).replace(/\/+$/, "");
+
 export default function VoiceToCode({ onInsertCode, onClose }) {
   const [listening, setListening] = useState(false);
   const [text, setText] = useState("");
   const [status, setStatus] = useState("Idle");
+  const [generating, setGenerating] = useState(false);
 
   const recognitionRef = useRef(null);
   const isListeningRef = useRef(false);
   const generatingRef = useRef(false);
 
-  /* ================= GENERATE CODE ================= */
+  // Generate code using the existing backend AI endpoint
   const generateCode = useCallback(
     async (prompt) => {
+      if (!BACKEND_URL) {
+        setStatus("❌ Backend URL is not configured.");
+        return;
+      }
+
       generatingRef.current = true;
+      setGenerating(true);
       setStatus("⚡ Generating code...");
 
       try {
-        const res = await fetch("http://localhost:5000/api/ai/chat", {
+        const res = await fetch(`${BACKEND_URL}/api/ai/chat`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            message: `You are a voice-to-code generator for FusionIDE.
+            message: `You are the Voice-to-Code assistant inside FusionIDE.
 
-Return ONLY the code requested by the user.
-Do not include explanations, Markdown code fences, or language labels.
-Do not add a main function unless the user asks for one.
-Generate a complete, useful implementation for the requested task.
+The user wants code generated from this voice command:
+${prompt}
 
-Voice command: ${prompt}`,
+Generate complete, useful code for the requested task.
+Return the code only, without Markdown fences or explanations.
+Use the programming language currently selected in the IDE if specified in the request.
+Do not invent or claim to execute the code.`,
           }),
         });
 
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
 
         if (!res.ok) {
-          throw new Error(data?.error || "AI request failed.");
+          throw new Error(
+            data.error ||
+              data.message ||
+              `AI request failed with status ${res.status}`
+          );
         }
 
-        let code = data?.reply || "";
+        // Support common response formats from the backend
+        let code =
+          data.reply ??
+          data.response ??
+          data.message ??
+          data.content ??
+          "";
 
-        // Remove Markdown code fences if the AI includes them.
+        if (typeof code !== "string") {
+          throw new Error("The AI returned an unexpected response format.");
+        }
+
+        // Remove optional Markdown code fences
         code = code
-          .replace(/^\s*```[\w+-]*\s*\n?/i, "")
-          .replace(/\n?```\s*$/i, "")
+          .replace(/^\s*```[\w+-]*\s*\n?/, "")
+          .replace(/\n?```\s*$/, "")
           .trim();
 
         if (!code) {
-          setStatus("⚠️ No code generated");
-          return;
+          throw new Error("The AI returned an empty code response.");
         }
 
         if (typeof onInsertCode !== "function") {
-          throw new Error("Code editor insertion function is missing.");
+          throw new Error("The editor insertion function is missing.");
         }
 
         onInsertCode(code + "\n");
-        setStatus("✅ Code inserted successfully");
+        setStatus("✅ Code inserted into the editor.");
       } catch (error) {
         console.error("Voice-to-Code error:", error);
-        setStatus(`❌ ${error.message || "Could not generate code"}`);
+
+        if (
+          error instanceof TypeError &&
+          /fetch/i.test(error.message)
+        ) {
+          setStatus(
+            "❌ Cannot connect to backend. Check that the backend is running."
+          );
+        } else {
+          setStatus(`❌ ${error.message || "Could not generate code."}`);
+        }
       } finally {
         generatingRef.current = false;
+        setGenerating(false);
       }
     },
     [onInsertCode]
   );
 
-  /* ================= INITIALIZE MICROPHONE ================= */
+  // Initialize browser speech recognition
   useEffect(() => {
     const SpeechRecognition =
       window.SpeechRecognition || window.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      setStatus("⚠️ Please use Google Chrome");
-      return;
+      setStatus("⚠️ Speech recognition is unavailable. Use Chrome.");
+      return undefined;
     }
 
     const recognition = new SpeechRecognition();
@@ -90,17 +127,23 @@ Voice command: ${prompt}`,
     recognition.lang = "en-IN";
     recognition.continuous = false;
     recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      isListeningRef.current = true;
+      setListening(true);
+      setStatus("🎤 Listening...");
+    };
 
     recognition.onresult = (event) => {
-      const speech = event.results[0][0].transcript.trim();
+      const speech = event.results?.[0]?.[0]?.transcript?.trim() || "";
 
-      console.log("Voice command:", speech);
       setText(speech);
 
       if (speech) {
         generateCode(speech);
       } else {
-        setStatus("⚠️ No speech detected");
+        setStatus("⚠️ No speech detected. Try again.");
       }
     };
 
@@ -116,17 +159,17 @@ Voice command: ${prompt}`,
     };
 
     recognition.onerror = (event) => {
-      console.error("Microphone error:", event.error);
+      console.error("Speech recognition error:", event.error);
 
       const messages = {
         "no-speech": "⚠️ No speech detected. Try again.",
-        "not-allowed": "🚫 Allow microphone permission in Chrome.",
+        "not-allowed": "🚫 Allow microphone access in Chrome.",
         "audio-capture": "❌ No microphone detected.",
         network: "❌ Speech recognition network error.",
+        aborted: "Speech recognition stopped.",
       };
 
       setStatus(messages[event.error] || `❌ ${event.error}`);
-
       isListeningRef.current = false;
       setListening(false);
     };
@@ -135,36 +178,41 @@ Voice command: ${prompt}`,
       recognition.onresult = null;
       recognition.onend = null;
       recognition.onerror = null;
+      recognition.onstart = null;
 
       try {
         recognition.stop();
       } catch (error) {
         // Recognition may already be stopped.
       }
+
+      recognitionRef.current = null;
+      isListeningRef.current = false;
     };
   }, [generateCode]);
 
-  /* ================= START LISTENING ================= */
+  // Start microphone
   const startListening = () => {
-    if (!recognitionRef.current || isListeningRef.current) {
+    if (!recognitionRef.current) {
+      setStatus("⚠️ Speech recognition is unavailable in this browser.");
+      return;
+    }
+
+    if (isListeningRef.current || generatingRef.current) {
       return;
     }
 
     try {
       setText("");
       setStatus("🎤 Listening...");
-      isListeningRef.current = true;
-      setListening(true);
       recognitionRef.current.start();
     } catch (error) {
       console.error("Could not start microphone:", error);
-      isListeningRef.current = false;
-      setListening(false);
       setStatus("❌ Could not start microphone. Try again.");
     }
   };
 
-  /* ================= STOP LISTENING ================= */
+  // Stop microphone
   const stopListening = () => {
     if (!recognitionRef.current) return;
 
@@ -182,20 +230,22 @@ Voice command: ${prompt}`,
     }
   };
 
-  /* ================= USER INTERFACE ================= */
   return (
     <div
       style={{
         position: "fixed",
         bottom: "20px",
         right: "20px",
-        width: "300px",
+        width: "340px",
+        maxWidth: "calc(100vw - 40px)",
+        boxSizing: "border-box",
         background: "#020617",
         borderRadius: "12px",
-        padding: "12px",
+        padding: "14px",
         color: "white",
         boxShadow: "0 0 15px rgba(0,0,0,0.6)",
-        zIndex: 9999,
+        zIndex: 10000,
+        fontFamily: "Arial, sans-serif",
       }}
     >
       <div
@@ -203,9 +253,10 @@ Voice command: ${prompt}`,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          gap: "10px",
         }}
       >
-        <span>🎤 Voice to Code</span>
+        <strong style={{ fontSize: "18px" }}>🎤 Voice to Code</strong>
 
         <button
           type="button"
@@ -213,10 +264,10 @@ Voice command: ${prompt}`,
           aria-label="Close Voice to Code"
           style={{
             cursor: "pointer",
-            color: "#f87171",
+            color: "#a78bfa",
             background: "transparent",
             border: "none",
-            fontSize: "18px",
+            fontSize: "24px",
           }}
         >
           ✖
@@ -224,10 +275,11 @@ Voice command: ${prompt}`,
       </div>
 
       <div
+        role="status"
         style={{
           fontSize: "13px",
-          marginTop: "8px",
-          color: "#22c55e",
+          marginTop: "12px",
+          color: status.startsWith("❌") ? "#f87171" : "#22c55e",
           overflowWrap: "anywhere",
         }}
       >
@@ -236,12 +288,12 @@ Voice command: ${prompt}`,
 
       <div
         style={{
-          fontSize: "12px",
+          fontSize: "13px",
           minHeight: "40px",
           background: "#0f172a",
-          padding: "8px",
+          padding: "10px",
           borderRadius: "6px",
-          marginTop: "8px",
+          marginTop: "10px",
           overflowWrap: "anywhere",
         }}
       >
@@ -252,36 +304,39 @@ Voice command: ${prompt}`,
         <button
           type="button"
           onClick={startListening}
-          disabled={generatingRef.current}
+          disabled={generating}
           style={{
-            marginTop: "10px",
+            marginTop: "12px",
             width: "100%",
-            padding: "9px",
+            padding: "12px",
             background: "#0284c7",
             border: "none",
             color: "white",
             borderRadius: "6px",
-            cursor: "pointer",
+            cursor: generating ? "not-allowed" : "pointer",
+            opacity: generating ? 0.6 : 1,
+            fontSize: "15px",
           }}
         >
-          ▶ Start
+          {generating ? "⚡ Generating..." : "▶ Start Listening"}
         </button>
       ) : (
         <button
           type="button"
           onClick={stopListening}
           style={{
-            marginTop: "10px",
+            marginTop: "12px",
             width: "100%",
-            padding: "9px",
+            padding: "12px",
             background: "#dc2626",
             border: "none",
             color: "white",
             borderRadius: "6px",
             cursor: "pointer",
+            fontSize: "15px",
           }}
         >
-          ⏹ Stop
+          ⏹ Stop Listening
         </button>
       )}
     </div>
