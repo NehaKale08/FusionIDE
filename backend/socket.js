@@ -8,7 +8,11 @@ module.exports = (io) => {
     let runningProcess = null; // ✅ PER SOCKET
 
     const startProcess = (cmd, args, cwd) => {
-      runningProcess = spawn(cmd, args, { cwd, shell: true });
+      runningProcess = spawn(cmd, args, {
+  cwd,
+  shell: true,
+  stdio: ["pipe", "pipe", "pipe"],
+});
 
       runningProcess.stdout.on("data", (data) => {
         socket.emit("terminal-output", data.toString());
@@ -94,10 +98,15 @@ module.exports = (io) => {
     });
 
     socket.on("terminal-input", (input) => {
-      if (runningProcess) {
-        runningProcess.stdin.write(input);
-      }
-    });
+  console.log("INPUT RECEIVED FROM FRONTEND:", JSON.stringify(input));
+
+  if (runningProcess) {
+    console.log("Writing input to running process");
+    runningProcess.stdin.write(input);
+  } else {
+    console.log("No running process found");
+  }
+});
 
     socket.on("disconnect", () => {
       if (runningProcess) runningProcess.kill();
